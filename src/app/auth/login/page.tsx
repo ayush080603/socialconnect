@@ -22,30 +22,34 @@ export default function LoginPage() {
     setLoading(true)
 
     const isEmail = form.emailOrUsername.includes('@')
-    const body = isEmail
-      ? { email: form.emailOrUsername, password: form.password }
-      : { username: form.emailOrUsername, password: form.password }
+    let loginEmail = form.emailOrUsername
 
-    const res = await fetch('/api/auth/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-    })
-
-    const data = await res.json()
-
-    if (!res.ok) {
-      toast({ title: data.error || 'Login failed', variant: 'destructive' })
-      setLoading(false)
-      return
+    // If username provided, resolve to email via API
+    if (!isEmail) {
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: form.emailOrUsername, password: form.password }),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        toast({ title: data.error || 'Invalid credentials', variant: 'destructive' })
+        setLoading(false)
+        return
+      }
+      loginEmail = data.email
     }
 
-    // Set session via Supabase client
-    if (data.access_token) {
-      await supabase.auth.setSession({
-        access_token: data.access_token,
-        refresh_token: data.user?.app_metadata?.refresh_token || '',
-      })
+    // Always sign in via Supabase client directly — sets cookies properly
+    const { error } = await supabase.auth.signInWithPassword({
+      email: loginEmail,
+      password: form.password,
+    })
+
+    if (error) {
+      toast({ title: error.message || 'Login failed', variant: 'destructive' })
+      setLoading(false)
+      return
     }
 
     toast({ title: 'Welcome back!' })
