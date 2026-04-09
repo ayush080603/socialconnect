@@ -15,30 +15,29 @@ export default function FeedPage() {
   const [posts, setPosts] = useState<Post[]>([])
   const [page, setPage] = useState(1)
   const [hasMore, setHasMore] = useState(true)
-  const [loading, setLoading] = useState(false)
+  const [postsLoading, setPostsLoading] = useState(false)
   const [initialLoad, setInitialLoad] = useState(true)
 
-  // Redirect to login if not authenticated
   useEffect(() => {
+    // After auth check completes, redirect if not logged in
     if (!authLoading && !user) {
       router.replace('/auth/login')
     }
   }, [authLoading, user, router])
 
   const fetchPosts = useCallback(async (pageNum: number, replace = false) => {
-    setLoading(true)
+    setPostsLoading(true)
     const res = await fetch(`/api/posts?page=${pageNum}&limit=10`)
     if (res.ok) {
       const json = await res.json()
       setPosts(prev => replace ? json.data : [...prev, ...json.data])
       setHasMore(json.hasMore)
     }
-    setLoading(false)
+    setPostsLoading(false)
     setInitialLoad(false)
   }, [])
 
   useEffect(() => {
-    // Only fetch posts when user is confirmed logged in
     if (!authLoading && user) {
       fetchPosts(1, true)
     }
@@ -52,8 +51,8 @@ export default function FeedPage() {
 
   const handleDelete = (id: string) => setPosts(prev => prev.filter(p => p.id !== id))
 
-  // Show spinner while auth or posts are loading
-  if (authLoading || (!user && !authLoading)) {
+  // Show spinner only while auth is still loading
+  if (authLoading) {
     return (
       <div className="flex justify-center py-20">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
@@ -61,6 +60,10 @@ export default function FeedPage() {
     )
   }
 
+  // Not logged in — show nothing (redirect is happening via useEffect above)
+  if (!user) return null
+
+  // Logged in but posts still loading
   if (initialLoad) {
     return (
       <div className="flex justify-center py-20">
@@ -90,8 +93,8 @@ export default function FeedPage() {
           ))}
           {hasMore && (
             <div className="flex justify-center pt-2">
-              <Button variant="outline" onClick={loadMore} disabled={loading}>
-                {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+              <Button variant="outline" onClick={loadMore} disabled={postsLoading}>
+                {postsLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
                 Load more
               </Button>
             </div>

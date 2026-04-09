@@ -24,12 +24,13 @@ export async function middleware(request: NextRequest) {
     }
   )
 
-  // CRITICAL: refreshes session on every request — prevents auto-logout
+  // Refreshes session on every request — critical for keeping users logged in
   const { data: { user } } = await supabase.auth.getUser()
 
   const { pathname } = request.nextUrl
 
-  const protectedRoutes = ['/posts/create', '/profile/edit']
+  // ALL routes that require login
+  const protectedRoutes = ['/feed', '/discover', '/posts/create', '/profile']
   const isProtected = protectedRoutes.some(r => pathname.startsWith(r))
 
   if (isProtected && !user) {
@@ -44,7 +45,6 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(url)
   }
 
-  // CRITICAL: always return supabaseResponse, never a plain NextResponse.next()
   return supabaseResponse
 }
 
