@@ -7,14 +7,23 @@ import { Button } from '@/components/ui/button'
 import { Loader2 } from 'lucide-react'
 import Link from 'next/link'
 import { useAuth } from '@/contexts/AuthContext'
+import { useRouter } from 'next/navigation'
 
 export default function FeedPage() {
   const { user, loading: authLoading } = useAuth()
+  const router = useRouter()
   const [posts, setPosts] = useState<Post[]>([])
   const [page, setPage] = useState(1)
   const [hasMore, setHasMore] = useState(true)
   const [loading, setLoading] = useState(false)
   const [initialLoad, setInitialLoad] = useState(true)
+
+  // Redirect to login if not authenticated
+  useEffect(() => {
+    if (!authLoading && !user) {
+      router.replace('/auth/login')
+    }
+  }, [authLoading, user, router])
 
   const fetchPosts = useCallback(async (pageNum: number, replace = false) => {
     setLoading(true)
@@ -29,8 +38,11 @@ export default function FeedPage() {
   }, [])
 
   useEffect(() => {
-    fetchPosts(1, true)
-  }, [fetchPosts])
+    // Only fetch posts when user is confirmed logged in
+    if (!authLoading && user) {
+      fetchPosts(1, true)
+    }
+  }, [authLoading, user, fetchPosts])
 
   const loadMore = () => {
     const next = page + 1
@@ -39,6 +51,15 @@ export default function FeedPage() {
   }
 
   const handleDelete = (id: string) => setPosts(prev => prev.filter(p => p.id !== id))
+
+  // Show spinner while auth or posts are loading
+  if (authLoading || (!user && !authLoading)) {
+    return (
+      <div className="flex justify-center py-20">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    )
+  }
 
   if (initialLoad) {
     return (
@@ -52,22 +73,15 @@ export default function FeedPage() {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Feed</h1>
-        {/* Only show when confirmed logged in */}
-        {!authLoading && user && (
-          <Button asChild size="sm">
-            <Link href="/posts/create">New Post</Link>
-          </Button>
-        )}
+        <Button asChild size="sm">
+          <Link href="/posts/create">New Post</Link>
+        </Button>
       </div>
 
       {posts.length === 0 ? (
         <div className="text-center py-16 space-y-3">
           <p className="text-muted-foreground text-lg">No posts yet</p>
-          {!authLoading && (
-            user
-              ? <Button asChild><Link href="/posts/create">Create the first post</Link></Button>
-              : <Button asChild><Link href="/auth/register">Join to post</Link></Button>
-          )}
+          <Button asChild><Link href="/posts/create">Create the first post</Link></Button>
         </div>
       ) : (
         <>

@@ -34,53 +34,57 @@ export default function Navbar() {
           SocialConnect
         </Link>
 
-        {/* Render nothing while auth state is loading — prevents icon flash */}
-        {!loading && (
-          <>
-            {user ? (
-              <nav className="flex items-center gap-2">
-                <Button variant="ghost" size="icon" asChild>
-                  <Link href="/feed"><Home className="h-5 w-5" /></Link>
-                </Button>
-                <Button variant="ghost" size="icon" asChild>
-                  <Link href="/discover"><Search className="h-5 w-5" /></Link>
-                </Button>
-                <Button variant="ghost" size="icon" asChild>
-                  <Link href="/posts/create"><PlusSquare className="h-5 w-5" /></Link>
-                </Button>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" className="relative h-8 w-8 rounded-full">
-                      <Avatar className="h-8 w-8">
-                        <AvatarImage src={profile?.avatar_url || ''} alt={profile?.username} />
-                        <AvatarFallback>{initials}</AvatarFallback>
-                      </Avatar>
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuItem asChild>
-                      <Link href={`/profile/${profile?.id}`}>
-                        <User className="mr-2 h-4 w-4" /> Profile
-                      </Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem asChild>
-                      <Link href="/profile/edit">Edit Profile</Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={handleSignOut} className="text-red-500">
-                      <LogOut className="mr-2 h-4 w-4" /> Sign Out
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </nav>
-            ) : (
-              <div className="flex gap-2">
-                <Button variant="ghost" asChild><Link href="/auth/login">Login</Link></Button>
-                <Button asChild><Link href="/auth/register">Sign Up</Link></Button>
-              </div>
-            )}
-          </>
-        )}
+        <nav className="flex items-center gap-2">
+          {loading ? (
+            // Skeleton placeholder while auth loads - shows nothing but holds space
+            <div className="h-8 w-24 rounded-md bg-muted animate-pulse" />
+          ) : user ? (
+            <>
+              <Button variant="ghost" size="icon" asChild>
+                <Link href="/feed"><Home className="h-5 w-5" /></Link>
+              </Button>
+              <Button variant="ghost" size="icon" asChild>
+                <Link href="/discover"><Search className="h-5 w-5" /></Link>
+              </Button>
+              <Button variant="ghost" size="icon" asChild>
+                <Link href="/posts/create"><PlusSquare className="h-5 w-5" /></Link>
+              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" className="relative h-8 w-8 rounded-full">
+                    <Avatar className="h-8 w-8">
+                      <AvatarImage src={profile?.avatar_url || ''} alt={profile?.username} />
+                      <AvatarFallback>{initials}</AvatarFallback>
+                    </Avatar>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem asChild>
+                    <Link href={`/profile/${profile?.id}`}>
+                      <User className="mr-2 h-4 w-4" /> Profile
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href="/profile/edit">Edit Profile</Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={handleSignOut} className="text-red-500">
+                    <LogOut className="mr-2 h-4 w-4" /> Sign Out
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </>
+          ) : (
+            <>
+              <Button variant="ghost" asChild>
+                <Link href="/auth/login">Login</Link>
+              </Button>
+              <Button asChild>
+                <Link href="/auth/register">Sign Up</Link>
+              </Button>
+            </>
+          )}
+        </nav>
       </div>
     </header>
   )
