@@ -9,7 +9,7 @@ import Link from 'next/link'
 import { useAuth } from '@/contexts/AuthContext'
 
 export default function FeedPage() {
-  const { user } = useAuth()
+  const { user, loading: authLoading } = useAuth()
   const [posts, setPosts] = useState<Post[]>([])
   const [page, setPage] = useState(1)
   const [hasMore, setHasMore] = useState(true)
@@ -38,9 +38,7 @@ export default function FeedPage() {
     fetchPosts(next)
   }
 
-  const handleDelete = (id: string) => {
-    setPosts(prev => prev.filter(p => p.id !== id))
-  }
+  const handleDelete = (id: string) => setPosts(prev => prev.filter(p => p.id !== id))
 
   if (initialLoad) {
     return (
@@ -54,7 +52,8 @@ export default function FeedPage() {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Feed</h1>
-        {user && (
+        {/* Only show when confirmed logged in */}
+        {!authLoading && user && (
           <Button asChild size="sm">
             <Link href="/posts/create">New Post</Link>
           </Button>
@@ -64,10 +63,10 @@ export default function FeedPage() {
       {posts.length === 0 ? (
         <div className="text-center py-16 space-y-3">
           <p className="text-muted-foreground text-lg">No posts yet</p>
-          {user ? (
-            <Button asChild><Link href="/posts/create">Create the first post</Link></Button>
-          ) : (
-            <Button asChild><Link href="/auth/register">Join to post</Link></Button>
+          {!authLoading && (
+            user
+              ? <Button asChild><Link href="/posts/create">Create the first post</Link></Button>
+              : <Button asChild><Link href="/auth/register">Join to post</Link></Button>
           )}
         </div>
       ) : (

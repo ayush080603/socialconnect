@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
 import { Button } from '@/components/ui/button'
@@ -9,7 +9,6 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/componen
 import { Label } from '@/components/ui/label'
 import { useToast } from '@/hooks/use-toast'
 import { ImagePlus, X, Loader2 } from 'lucide-react'
-import { useEffect } from 'react'
 
 export default function CreatePostPage() {
   const { user, loading } = useAuth()
@@ -22,8 +21,17 @@ export default function CreatePostPage() {
   const [submitting, setSubmitting] = useState(false)
 
   useEffect(() => {
-    if (!loading && !user) router.push('/auth/login')
-  }, [user, loading])
+    if (!loading && !user) router.replace('/auth/login')
+  }, [user, loading, router])
+
+  // Show spinner while checking auth or if not logged in
+  if (loading || !user) {
+    return (
+      <div className="flex justify-center py-20">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    )
+  }
 
   const handleImage = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -53,20 +61,16 @@ export default function CreatePostPage() {
       return
     }
     setSubmitting(true)
-
     const formData = new FormData()
     formData.append('content', content.trim())
     if (image) formData.append('image', image)
-
     const res = await fetch('/api/posts', { method: 'POST', body: formData })
     const data = await res.json()
-
     if (!res.ok) {
       toast({ title: data.error || 'Failed to create post', variant: 'destructive' })
       setSubmitting(false)
       return
     }
-
     toast({ title: 'Post created!' })
     router.push('/feed')
   }
@@ -76,9 +80,7 @@ export default function CreatePostPage() {
   return (
     <div className="max-w-lg mx-auto">
       <Card>
-        <CardHeader>
-          <CardTitle>Create Post</CardTitle>
-        </CardHeader>
+        <CardHeader><CardTitle>Create Post</CardTitle></CardHeader>
         <form onSubmit={handleSubmit}>
           <CardContent className="space-y-4">
             <div className="space-y-2">
@@ -94,45 +96,29 @@ export default function CreatePostPage() {
                 {remaining} characters remaining
               </p>
             </div>
-
             <div className="space-y-2">
               <Label>Image (optional)</Label>
               {preview ? (
                 <div className="relative rounded-lg overflow-hidden">
                   <img src={preview} alt="Preview" className="w-full max-h-64 object-cover" />
-                  <Button
-                    type="button"
-                    variant="destructive"
-                    size="icon"
-                    className="absolute top-2 right-2 h-7 w-7"
-                    onClick={removeImage}
-                  >
+                  <Button type="button" variant="destructive" size="icon"
+                    className="absolute top-2 right-2 h-7 w-7" onClick={removeImage}>
                     <X className="h-4 w-4" />
                   </Button>
                 </div>
               ) : (
-                <div
-                  className="border-2 border-dashed rounded-lg p-8 text-center cursor-pointer hover:border-primary transition-colors"
-                  onClick={() => fileRef.current?.click()}
-                >
+                <div className="border-2 border-dashed rounded-lg p-8 text-center cursor-pointer hover:border-primary transition-colors"
+                  onClick={() => fileRef.current?.click()}>
                   <ImagePlus className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
                   <p className="text-sm text-muted-foreground">Click to upload image</p>
                   <p className="text-xs text-muted-foreground mt-1">JPEG or PNG, max 2MB</p>
                 </div>
               )}
-              <input
-                ref={fileRef}
-                type="file"
-                accept="image/jpeg,image/png"
-                onChange={handleImage}
-                className="hidden"
-              />
+              <input ref={fileRef} type="file" accept="image/jpeg,image/png" onChange={handleImage} className="hidden" />
             </div>
           </CardContent>
           <CardFooter className="gap-3">
-            <Button type="button" variant="outline" onClick={() => router.back()} className="flex-1">
-              Cancel
-            </Button>
+            <Button type="button" variant="outline" onClick={() => router.back()} className="flex-1">Cancel</Button>
             <Button type="submit" disabled={submitting || !content.trim()} className="flex-1">
               {submitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
               Post
