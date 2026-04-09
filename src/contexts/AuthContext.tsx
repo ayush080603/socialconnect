@@ -3,7 +3,7 @@
 import { createClient } from '@/lib/supabase/client'
 import { Profile } from '@/lib/types'
 import { User } from '@supabase/supabase-js'
-import { createContext, useContext, useEffect, useState } from 'react'
+import { createContext, useContext, useEffect, useRef, useState } from 'react'
 
 interface AuthContextType {
   user: User | null
@@ -25,9 +25,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [profile, setProfile] = useState<Profile | null>(null)
   const [loading, setLoading] = useState(true)
-
-  // Always create a fresh client inside the component
   const supabase = createClient()
+  const isMounted = useRef(true)
 
   const fetchProfile = async (userId: string) => {
     try {
@@ -36,9 +35,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         .select('*')
         .eq('id', userId)
         .single()
-      setProfile(data ?? null)
+      if (isMounted.current) setProfile(data ?? null)
     } catch {
-      setProfile(null)
+      if (isMounted.current) setProfile(null)
     }
   }
 
@@ -47,35 +46,41 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   useEffect(() => {
-    // Step 1: get current session immediately on mount
+    isMounted.current = true
+
+    // getSession() is instant — reads from cookie, no network call
     supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!isMounted.current) return
       const currentUser = session?.user ?? null
       setUser(currentUser)
       if (currentUser) {
-        fetchProfile(currentUser.id).finally(() => setLoading(false))
+        fetchProfile(currentUser.id).finally(() => {
+          if (isMounted.current) setLoading(false)
+        })
       } else {
         setLoading(false)
       }
     })
 
-    // Step 2: listen for any auth changes (login, logout, token refresh)
+    // Listen for login/logout/token refresh events
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
+      (event, session) => {
+        if (!isMounted.current) return
         const currentUser = session?.user ?? null
         setUser(currentUser)
-
         if (currentUser) {
-          await fetchProfile(currentUser.id)
+          fetchProfile(currentUser.id)
         } else {
           setProfile(null)
         }
-
-        // Only stop loading after first auth event resolves
         setLoading(false)
       }
     )
 
-    return () => subscription.unsubscribe()
+    return () => {
+      isMounted.current = false
+      subscription.unsubscribe()
+    }
   }, [])
 
   const signOut = async () => {

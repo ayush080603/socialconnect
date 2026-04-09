@@ -24,12 +24,12 @@ export async function middleware(request: NextRequest) {
     }
   )
 
-  // Refreshes session on every request — critical for keeping users logged in
-  const { data: { user } } = await supabase.auth.getUser()
+  // getSession() reads from cookie — no network call, instant
+  const { data: { session } } = await supabase.auth.getSession()
+  const user = session?.user ?? null
 
   const { pathname } = request.nextUrl
 
-  // ALL routes that require login
   const protectedRoutes = ['/feed', '/discover', '/posts/create', '/profile']
   const isProtected = protectedRoutes.some(r => pathname.startsWith(r))
 
