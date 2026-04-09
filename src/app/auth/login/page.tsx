@@ -6,7 +6,10 @@ import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
+import {
+  Card, CardContent, CardDescription,
+  CardFooter, CardHeader, CardTitle
+} from '@/components/ui/card'
 import { useToast } from '@/hooks/use-toast'
 import { createClient } from '@/lib/supabase/client'
 
@@ -24,30 +27,40 @@ export default function LoginPage() {
     const isEmail = form.emailOrUsername.includes('@')
     let loginEmail = form.emailOrUsername
 
-    // If username provided, resolve to email via API
+    // If username, resolve to email via API first
     if (!isEmail) {
       const res = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username: form.emailOrUsername, password: form.password }),
+        body: JSON.stringify({
+          username: form.emailOrUsername,
+          password: form.password,
+        }),
       })
       const data = await res.json()
-      if (!res.ok) {
-        toast({ title: data.error || 'Invalid credentials', variant: 'destructive' })
+
+      if (!res.ok || !data.email) {
+        toast({
+          title: data.error || 'Username not found. Try using your email instead.',
+          variant: 'destructive',
+        })
         setLoading(false)
         return
       }
       loginEmail = data.email
     }
 
-    // Always sign in via Supabase client directly — sets cookies properly
+    // Sign in directly on the client — this correctly sets the session cookie
     const { error } = await supabase.auth.signInWithPassword({
       email: loginEmail,
       password: form.password,
     })
 
     if (error) {
-      toast({ title: error.message || 'Login failed', variant: 'destructive' })
+      toast({
+        title: 'Invalid email or password',
+        variant: 'destructive',
+      })
       setLoading(false)
       return
     }
@@ -71,7 +84,7 @@ export default function LoginPage() {
               <Label htmlFor="emailOrUsername">Email or Username</Label>
               <Input
                 id="emailOrUsername"
-                placeholder="you@example.com or @username"
+                placeholder="you@example.com or username"
                 value={form.emailOrUsername}
                 onChange={e => setForm(f => ({ ...f, emailOrUsername: e.target.value }))}
                 required
