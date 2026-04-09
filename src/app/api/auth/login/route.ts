@@ -16,31 +16,22 @@ export async function POST(request: NextRequest) {
     const supabase = await createClient()
     let loginEmail = email
 
-    // If username provided, look up the email from profiles table
+    // Username login — get email directly from profiles table, no admin API needed
     if (!email && username) {
-      const { data: profile, error: profileError } = await supabase
+      const { data: profile, error } = await supabase
         .from('profiles')
-        .select('id, username')
+        .select('email')
         .eq('username', username)
         .single()
 
-      if (profileError || !profile) {
-        return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 })
-      }
-
-      // Get email from auth.users using the user id
-      const { data: adminData, error: adminError } = await supabase
-        .auth.admin.getUserById(profile.id)
-
-      if (adminError || !adminData?.user?.email) {
-        // Fallback: ask user to use email instead
+      if (error || !profile?.email) {
         return NextResponse.json(
-          { error: 'Please use your email address to log in' },
+          { error: 'No account found with that username' },
           { status: 401 }
         )
       }
 
-      loginEmail = adminData.user.email
+      loginEmail = profile.email
     }
 
     return NextResponse.json({ email: loginEmail })
